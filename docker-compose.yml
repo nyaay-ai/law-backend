@@ -1,0 +1,73 @@
+version: "3.9"
+
+services:
+  api:
+    image: lawyer-ai
+    container_name: lawyer-ai
+    build: .
+    restart: always
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+    stdin_open: true
+    tty: true
+    networks:
+      - shared-net
+      - default
+
+  postgres:
+    image: postgres:17
+    container_name: lawyer-ai-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: lawyer_ai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: merasql
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d lawyer_ai"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 2s
+    networks:
+      - shared-net
+      - default
+
+  redis:
+    image: redis:alpine
+    container_name: lawyer-ai-redis
+    restart: always
+    command: ["redis-server", "--requirepass", "meraredis"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "meraredis", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 2s
+    networks:
+      - shared-net
+      - default
+
+volumes:
+  pgdata:
+
+networks:
+  shared-net:
+    external: true
