@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    GEMINI_API_KEY: str = "DO_NOT_HAVE_ONE"
+    MODEL_NAME: str = "GEMINI"
+
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
     def parse_origins(cls, v):
