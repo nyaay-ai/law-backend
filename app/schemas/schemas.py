@@ -1,8 +1,9 @@
 from typing import Any, Dict, Optional
+
 from pydantic import BaseModel
 
-
 # ── User ──────────────────────────────────────────────────────────────────────
+
 
 class UserCreate(BaseModel):
     name: str
@@ -39,7 +40,7 @@ class Token(BaseModel):
 
 # ── Case ──────────────────────────────────────────────────────────────────────
 
-from app.models.case import CaseOrderStatus, CaseDataStatus, FileStatus
+from app.models.case import CaseDataStatus, CaseOrderStatus, FileStatus
 
 
 class CaseCreate(BaseModel):
@@ -95,3 +96,16 @@ class CaseChatRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ── Engine ──────────────────────────────────────────────────────────────────
+
+
+class InputProcessingPayload(BaseModel):
+    translated_text: str
+    original_text: str
+
+
+class InputProcessingResponse(BaseModel):
+    message: str
+    missing_fields: list[str]
