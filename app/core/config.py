@@ -21,12 +21,13 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change-me-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     ALGORITHM: str = "HS256"
-
+    WHATSAPP_ACCESS_TOKEN: str = 'EAAUl99nq2xkBRLmWlWxAnmAu3Vv9QwDY9yflYz1B6RCnpHdkXLWgBTZBYE1pNPBuxvZCvyh2vDaabNZB24c9unaIUWQiVLnKLt5EdTOHozZB7PGaIZAIIrniWOez606rb8GJ04MZAYeFsIDZBYU6PIZBla37VEx9z06AvP9aETqzi059pVM74S0eLLJbj2v0Q1ZAH79p4tyCZBCKzSoCekzZAw1ZCgg2PqHUartgWw5MJfiZCxQAiTir8NQf9nkvQT5sZBWkKV6xWERWZAuesEobubXhDBNiBee'
     # CORS — stored as JSON string in .env, parsed to list here
     ALLOWED_ORIGINS: List[str] = ["*"]
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
+    
 
     GEMINI_API_KEY: str = "DO_NOT_HAVE_ONE"
     MODEL_NAME: str = "GEMINI"

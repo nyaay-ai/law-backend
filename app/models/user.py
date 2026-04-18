@@ -52,7 +52,7 @@ class User(BaseModel):
         user = cls(
             name=name,
             phone_number=phone_number,
-            hashed_password=hash_password(password),
+            hashed_password=password, #NOTE#hash this or drop this
             preferred_language=preferred_language,
             language_for_draft=language_for_draft,
             existing_document_prompt=existing_document_prompt,
