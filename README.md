@@ -50,8 +50,8 @@ cp .env.example .env
 python run.py
 ```
 
-The API will be available at `http://localhost:8000`.  
-Interactive docs: `http://localhost:8000/docs`
+The API will be available at `http://localhost:8100`.  
+Interactive docs: `http://localhost:8100/docs`
 
 ## API Endpoints
 
