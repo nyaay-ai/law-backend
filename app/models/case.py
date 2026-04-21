@@ -244,3 +244,38 @@ class Case(BaseModel):
             f"order_status={self.case_order_status} "
             f"is_active={self.is_active}>"
         )
+    
+    @classmethod
+    async def update_by_id(
+        cls,
+        db: AsyncSession,
+        case_id: str,
+        **kwargs
+    ) -> Optional["Case"]:
+        """
+        Updates a case by its ID with the provided kwargs.
+        Returns the updated case object or None if not found.
+        """
+        now = datetime.utcnow()
+        
+        # We add updated_at automatically to the update values
+        update_data = {**kwargs, "updated_at": now}
+
+        # Execute the update statement
+        query = (
+            update(cls)
+            .where(cls.id == case_id)
+            .values(**update_data)
+        )
+        
+        result = await db.execute(query)
+        
+        # Check if any row was actually updated
+        if result.rowcount == 0:
+            return None
+
+        await db.flush()
+        
+        # Return the refreshed object
+        return await cls.get_by_id(db, case_id)
+    

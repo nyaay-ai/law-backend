@@ -57,3 +57,33 @@ def get_classification_prompt(translated_text, original_text):
     """
 
     return prompt
+
+
+def get_process_missing_fields_prompt(data):
+    prompt = f"""
+    You are an Indian legal assistant specialized in litigation workflows.
+
+    We have previously extracted structured legal information from user input, but some critical fields were missing.
+    We have the data for it now. Can you update the missing fields based on the new data and return the updated JSON?
+
+    Missing fields answers:
+    {data.get("missing_fields_answers")}
+
+    Input:
+    Original: {data.get("original_text", "")}
+    Translated: {data.get("translated_text", "")}
+
+    Instructions:
+    1) Provide accurate information for each missing field.
+    2) Do NOT hallucinate. If unsure, use "unknown".
+    3) Normalize informal language (Hindi/Hinglish) into legal meaning.
+    4) Return STRICT JSON ONLY in the following format:
+    5) Do not update anything else other than the missing fields.
+
+    Old JSON with missing fields:
+    {data.get("old_json")}
+
+    Return ONLY valid JSON. No extra text.
+    """
+
+    return prompt

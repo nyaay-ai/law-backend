@@ -1,20 +1,38 @@
 import json
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.engine.constants import ALLOWED, FIELD_QUESTIONS
-from app.engine.input_processing_engine.util import get_classification_prompt
+from app.engine.input_processing_engine.util import (
+    get_classification_prompt,
+    get_process_missing_fields_prompt,
+)
 from app.llm.llm import Llm
+from app.models.case import Case
 
 llm = Llm()
 
 
 class InputProcessingEngine:
-    async def classification(self, translated: str, original: str):
-        print("Generating prompt for LLM... Classification in progress.")
-        prompt = get_classification_prompt(
-            translated_text=translated, original_text=original
-        )
+    async def classification(
+        self,
+        db: AsyncSession,
+        case_id: str,
+        translated: str = None,
+        original: str = None,
+        missing_fields_answers: dict = None,
+    ) -> dict:
 
-        response = await llm.generate_response(user_prompt=prompt)
+        print("Generating prompt for LLM... Classification in progress.")
+
+        if missing_fields_answers and case_id:
+            print("Generating prompt for LLM... Processing missing fields.")
+            response = self.generate_missing_fields_data(missing_fields_answers, "{}")
+        elif translated and original:
+            prompt = get_classification_prompt(
+                translated_text=translated, original_text=original
+            )
+            response = await llm.generate_response(user_prompt=prompt)
 
         print("Generating prompt for LLM... validation in progress.")
 
@@ -22,12 +40,20 @@ class InputProcessingEngine:
         follow_up_questions = self.generate_followups(validation_result)
 
         print("latest response from llm:", validation_result)
+
+        if case_id:
+            await Case.update_by_id(
+                db,
+                case_id,
+                case_internal_data=validation_result,
+            )
+
         if len(follow_up_questions) > 0:
             # TODO: add function call to send the follow up questions to the backend
-            return follow_up_questions
+            return {"follow_up_questions": follow_up_questions}
         else:
             # TODO: proceed to next part if no missing fields
-            return "done"
+            return {"message": "done"}
 
     def normalize_enum(self, value, field):
         if not value:
@@ -103,3 +129,12 @@ class InputProcessingEngine:
         return [
             FIELD_QUESTIONS[f] for f in ctx["missing_fields"] if f in FIELD_QUESTIONS
         ]
+
+    def generate_missing_fields_data(self, missing_fields_answers: str, old_json: str):
+        data = {"missing_fields_answers": missing_fields_answers, "old_json": old_json}
+        prompt = get_process_missing_fields_prompt(data)
+
+        response = llm.generate_response(user_prompt=prompt)
+        print("Response from LLM for missing fields:", response)
+
+        return response

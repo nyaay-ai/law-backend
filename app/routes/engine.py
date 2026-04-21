@@ -29,6 +29,14 @@ async def inputProcessing(
 
     print("Received payload:", payload)
     engine = InputProcessingEngine()
-    await engine.classification(payload.translated_text, payload.original_text)
+    response = await engine.classification(
+        payload.case_id, payload.translated_text, payload.original_text, db
+    )
+
+    if (response.get("follow_up_questions") or []) and len(response["follow_up_questions"]) > 0:
+        return {
+            "message": "Input processed with missing fields",
+            "missing_fields": response["follow_up_questions"],
+        }
 
     return {"message": "Input processed successfully", "missing_fields": []}
