@@ -22,18 +22,13 @@ class User(BaseModel):
     existing_document_prompt: Mapped[Optional[str]] = mapped_column("EXISTING_DOCUMENT_PROMPT", Text, nullable=True)
     user_other_details: Mapped[Dict[str, Any]] = mapped_column("USER_OTHER_DETAILS", JSON, nullable=False, default=dict)
 
-    # Auth fields (not in the schema but needed for login)
     hashed_password: Mapped[str] = mapped_column("HASHED_PASSWORD", String(255), nullable=False)
-
-    # ── Identity ──────────────────────────────────────────────────────────────
 
     def token(self) -> str:
         return "USR"
 
     def get_identifiers(self) -> List[Any]:
         return [self.phone_number or self.name]
-
-    # ── Classmethods (fat model — business logic lives here) ──────────────────
 
     @classmethod
     async def create(
@@ -52,7 +47,7 @@ class User(BaseModel):
         user = cls(
             name=name,
             phone_number=phone_number,
-            hashed_password=password, #NOTE#hash this or drop this
+            hashed_password=password,
             preferred_language=preferred_language,
             language_for_draft=language_for_draft,
             existing_document_prompt=existing_document_prompt,

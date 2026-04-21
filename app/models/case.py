@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import JSON, Enum, ForeignKey, String, select
+from sqlalchemy import Boolean, JSON, Enum, ForeignKey, String, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -32,20 +32,44 @@ class Case(BaseModel):
     __tablename__ = "cases"
 
     id: Mapped[str] = mapped_column("ID", String(255), primary_key=True)
-    case_external_data: Mapped[Dict[str, Any]] = mapped_column("CASE_EXTERNAL_DATA", JSON, nullable=False, default=dict)
-    case_internal_data: Mapped[Dict[str, Any]] = mapped_column("CASE_INTERNAL_DATA", JSON, nullable=False, default=dict)
+
+    user_id: Mapped[str] = mapped_column(
+        "USER_ID",
+        String(255),
+        ForeignKey("users.ID"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    case_external_data: Mapped[Dict[str, Any]] = mapped_column(
+        "CASE_EXTERNAL_DATA",
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+
+    case_internal_data: Mapped[Dict[str, Any]] = mapped_column(
+        "CASE_INTERNAL_DATA",
+        JSON,
+        nullable=False,
+        default=dict,
+    )
+
     case_order_status: Mapped[CaseOrderStatus] = mapped_column(
         "CASE_ORDER_STATUS",
         Enum(CaseOrderStatus, name="case_order_status_enum"),
         nullable=False,
         default=CaseOrderStatus.IN_PROGRESS,
     )
+
     case_data_status: Mapped[CaseDataStatus] = mapped_column(
         "CASE_DATA_STATUS",
         Enum(CaseDataStatus, name="case_data_status_enum"),
         nullable=False,
         default=CaseDataStatus.PENDING,
     )
+
     file_status: Mapped[FileStatus] = mapped_column(
         "FILE_STATUS",
         Enum(FileStatus, name="file_status_enum"),
@@ -53,8 +77,19 @@ class Case(BaseModel):
         default=FileStatus.DRAFT,
     )
 
-    # Relationships
-    chats: Mapped[List["CaseChat"]] = relationship("CaseChat", back_populates="case", lazy="selectin")
+    is_active: Mapped[bool] = mapped_column(
+        "IS_ACTIVE",
+        Boolean,
+        nullable=False,
+        default=False,
+        index=True,
+    )
+
+    chats: Mapped[List["CaseChat"]] = relationship(
+        "CaseChat",
+        back_populates="case",
+        lazy="selectin",
+    )
 
     # ── Identity ──────────────────────────────────────────────────────────────
 
@@ -71,47 +106,141 @@ class Case(BaseModel):
         cls,
         db: AsyncSession,
         *,
+        user_id: str,
         case_external_data: dict = None,
         case_internal_data: dict = None,
         case_order_status: CaseOrderStatus = CaseOrderStatus.IN_PROGRESS,
         case_data_status: CaseDataStatus = CaseDataStatus.PENDING,
         file_status: FileStatus = FileStatus.DRAFT,
+        is_active: bool = False,
     ) -> "Case":
-        import uuid
         now = datetime.utcnow()
+
         case = cls(
+            user_id=user_id,
             case_external_data=case_external_data or {},
             case_internal_data=case_internal_data or {},
             case_order_status=case_order_status,
             case_data_status=case_data_status,
             file_status=file_status,
+            is_active=is_active,
             created_at=now,
             updated_at=now,
         )
-        # Use uuid for uniqueness since case has no natural business key
-        case.id = "CASE_" + str(uuid.uuid4()).replace("-", "")[:10]
+
+        case.id = case.compute_and_get_id()
+
         db.add(case)
         await db.flush()
         return case
 
     @classmethod
-    async def get_by_id(cls, db: AsyncSession, case_id: str) -> Optional["Case"]:
-        result = await db.execute(select(cls).where(cls.id == case_id))
+    async def get_by_id(
+        cls,
+        db: AsyncSession,
+        case_id: str,
+    ) -> Optional["Case"]:
+        result = await db.execute(
+            select(cls).where(cls.id == case_id)
+        )
         return result.scalar_one_or_none()
 
     @classmethod
-    async def get_all(cls, db: AsyncSession) -> List["Case"]:
-        result = await db.execute(select(cls))
+    async def get_all(
+        cls,
+        db: AsyncSession,
+        user_id: str,
+    ) -> List["Case"]:
+        result = await db.execute(
+            select(cls).where(cls.user_id == user_id)
+        )
         return list(result.scalars().all())
+
+    # NEW: fetch active case for user
+    @classmethod
+    async def get_active(
+        cls,
+        db: AsyncSession,
+        user_id: str,
+    ) -> Optional["Case"]:
+        result = await db.execute(
+            select(cls)
+            .where(cls.user_id == user_id, cls.is_active.is_(True))
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
+    # NEW: mark one case active, deactivate others
+    @classmethod
+    async def set_active(
+        cls,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        case_id: str,
+    ) -> Optional["Case"]:
+        now = datetime.utcnow()
+
+        # deactivate all user cases
+        await db.execute(
+            update(cls)
+            .where(cls.user_id == user_id)
+            .values(
+                is_active=False,
+                updated_at=now,
+            )
+        )
+
+        # activate target case
+        await db.execute(
+            update(cls)
+            .where(
+                cls.user_id == user_id,
+                cls.id == case_id,
+            )
+            .values(
+                is_active=True,
+                updated_at=now,
+            )
+        )
+
+        await db.flush()
+        return await cls.get_by_id(db, case_id)
+
+    # NEW: clear active case(s)
+    @classmethod
+    async def clear_active(
+        cls,
+        db: AsyncSession,
+        user_id: str,
+    ) -> None:
+        await db.execute(
+            update(cls)
+            .where(
+                cls.user_id == user_id,
+                cls.is_active.is_(True),
+            )
+            .values(
+                is_active=False,
+                updated_at=datetime.utcnow(),
+            )
+        )
+        await db.flush()
 
     async def update(self, db: AsyncSession, **kwargs) -> "Case":
         for field, value in kwargs.items():
             if hasattr(self, field):
                 setattr(self, field, value)
+
         self.updated_at = datetime.utcnow()
+
         db.add(self)
         await db.flush()
         return self
 
     def __repr__(self) -> str:
-        return f"<Case id={self.id} order_status={self.case_order_status}>"
+        return (
+            f"<Case id={self.id} "
+            f"order_status={self.case_order_status} "
+            f"is_active={self.is_active}>"
+        )
