@@ -32,6 +32,18 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = "DO_NOT_HAVE_ONE"
     MODEL_NAME: str = "GEMINI"
 
+    INDIAN_KANOON_API_KEY: str = "DO_NOT_HAVE_ONE"
+
+    CHROMA_HOST: str = "chromadb"
+    CHROMA_PORT: int = 8000
+
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    CHROMA_COLLECTION: str = "legal-refs"
+    RAG_RELEVANCE_THRESHOLD: float = 0.65
+    RAG_MIN_RESULTS: int = 2
+    CHROMA_COLLECTION: str = "legal-refs"
+
+
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
     def parse_origins(cls, v):
