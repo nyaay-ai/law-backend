@@ -15,3 +15,5 @@ redis
 loguru
 google-genai>=1.0.0
 ollama>=0.1.0
+redis-queue==0.5
+rq==2.8.0

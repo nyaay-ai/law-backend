@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import sys
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +10,15 @@ from app.routes import api_router
 
 # Import all models so metadata is populated before create_all
 import app.models  # noqa: F401
+from loguru import logger
+logger.remove()
 
+logger.add(
+    sys.stdout,
+    format="{time:YYYY-MM-DD HH:mm:ss.SSS}:{function}:{file.name}:{line}:{level}:{message}",
+    level="INFO",
+    colorize=False
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

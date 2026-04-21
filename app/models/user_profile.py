@@ -1,17 +1,3 @@
-"""
-user_profile.py
----------------
-Stores richer profile data for each WhatsApp user:
-  - communication preferences (language, draft language, tonality)
-  - form answers (name, email, address, case description, relief)
-  - extracted metadata from uploaded sample documents
-
-All business logic lives in classmethods (fat model pattern).
-"""
-
-from __future__ import annotations
-
-import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -21,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import BaseModel
 
-logger = logging.getLogger("user_profile")
+from loguru import logger
 
 
 class UserProfile(BaseModel):
@@ -79,6 +65,24 @@ class UserProfile(BaseModel):
     # =========================================================================
     # Class-level constructors & queries
     # =========================================================================
+
+    @property
+    def data(self) -> Dict[str, Any]:
+        """
+        Backward-compatible serializer for handlers expecting profile.data
+        """
+        return {
+            "name": self.name,
+            "email": self.email,
+            "address": self.address,
+            "case_description": self.case_description,
+            "relief_details": self.relief_details,
+            "preferred_language": self.preferred_language,
+            "language_for_draft": self.language_for_draft,
+            "tonality": self.tonality,
+            "document_analysis": self.document_analysis or {},
+            "extra": self.extra or {},
+        }
 
     @classmethod
     async def create_for_user(

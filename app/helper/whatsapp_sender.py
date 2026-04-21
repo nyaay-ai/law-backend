@@ -1,20 +1,13 @@
-"""
-whatsapp_sender.py
-~~~~~~~~~~~~~~~~~~
-All outbound WhatsApp message helpers.
-"""
-
 import httpx
-import logging
 import os
 
 from app.helper.chat_state_manager import SENT_BY_SYSTEM, append_chat_message
 
-logger = logging.getLogger("whatsapp")
+from loguru import logger
 
 WHATSAPP_TOKEN = os.getenv(
     "WHATSAPP_TOKEN",
-    "",
+    "EAAUl99nq2xkBRYZBZBTbME8tp55ZC7Hrz00tGe26eVz4edjSSgyZCnbGVR7PghvedzstqgfWEWvvQCisAcpfUrkfJNFmljMofsm6EHVWDfLrvZBfNdnfStYBHb56fNmWEZAVUbum8t4jzu1n3wYL24VXyxYcX2oALPugf7uDIwl1YOjcbg1OBVj7mc8m1qYjqn24IKu4ANvtZAS25ZCZADvUZBXNc0GtHpBdSdZCetSsOxrYJfXj2kZCiwhHsPRN5FHnFxiVIEwEV28MHLxijiE9IjZBernuT",
 )
 WHATSAPP_PHONE_NUMBER_ID = os.getenv("WHATSAPP_PHONE_NUMBER_ID", "1038452652691244")
 
@@ -76,17 +69,23 @@ async def send_text(to: str, text: str, *, user_id: str | None = None) -> None:
         except Exception as exc:
             logger.warning("Failed to persist system message to chat history: %s", exc)
 
-
 async def send_buttons(
     to: str,
     body: str,
     buttons: list[str],
     *,
+    button_ids: list[str] | None = None,
     user_id: str | None = None,
 ) -> None:
     """Up to 3 quick-reply buttons."""
     if len(buttons) > 3:
         raise ValueError("WhatsApp max 3 buttons")
+    if button_ids and len(button_ids) != len(buttons):
+        raise ValueError("button_ids length must match buttons length")
+
+    ids = button_ids or [f"btn_{i}" for i in range(len(buttons))]
+    logger.info(f'send_buttons>>{ids}>>{button_ids}')
+
     await _send(
         to,
         {
@@ -96,11 +95,8 @@ async def send_buttons(
                 "body": {"text": body},
                 "action": {
                     "buttons": [
-                        {
-                            "type": "reply",
-                            "reply": {"id": f"btn_{i}", "title": label},
-                        }
-                        for i, label in enumerate(buttons)
+                        {"type": "reply", "reply": {"id": id_, "title": label}}
+                        for id_, label in zip(ids, buttons)
                     ]
                 },
             },
