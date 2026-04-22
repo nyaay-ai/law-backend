@@ -24,7 +24,7 @@ class InputProcessingEngine:
         case_id: str,
         translated: str = None,
         original: str = None,
-        missing_fields_answers: dict = None,
+        missing_fields_answers: str = None,
     ) -> dict:
 
         print("Generating prompt for LLM... Classification in progress.")

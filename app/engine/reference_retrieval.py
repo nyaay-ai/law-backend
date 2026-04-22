@@ -9,15 +9,15 @@ class ReferenceRetrieval:
 
     async def retrieve_references(self, ctx: DraftContext) -> LegalContext:
         query = (
-            f"{ctx.draft_type.value.replace('_', ' ')}"
-            f"{ctx.jurisdiction.value.replace('_', ' ')}"
-            f"{ctx.court_type.value.replace('_', ' ')}"
+            f"{ctx.draft_type.replace('_', ' ')}"
+            f"{ctx.jurisdiction.replace('_', ' ')}"
+            f"{ctx.court_type.replace('_', ' ')}"
             f"{ctx.legal_issue}"
         ).strip()
 
-        draft_type = ctx.draft_type.value
+        draft_type = ctx.draft_type
 
-        has_docs = self.store.has_documents(draft_type)
+        has_docs = self.store.collection_has_docs(draft_type)
 
         if not has_docs:
             raw_docs = await IndianKanoonAPI().search_query(query, draft_type)

@@ -6,6 +6,8 @@ from pydantic import BaseModel
 class InputProcessingPayload(BaseModel):
     translated_text: str
     original_text: str
+    case_id: Optional[str] = None
+    missing_fields_answers: Optional[Dict[str, Any]] = None
 
 
 class InputProcessingResponse(BaseModel):

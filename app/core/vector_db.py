@@ -1,8 +1,10 @@
 import hashlib
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+import chromadb
+from chromadb.config import Settings as ChromaSettings
 from langchain_chroma import Chroma
 from langchain_ollama import OllamaEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.core.config import settings
 from app.schemas.legal_context import LegalReference, ReferenceSource
@@ -16,17 +18,39 @@ splitter = RecursiveCharacterTextSplitter(
 
 class VectorStore:
     def __init__(self):
+        # self._embeddings = OllamaEmbeddings(
+        #     model="nomic-embed-text", base_url=settings.OLLAMA_BASE_URL
+        # )
+        # self._store = Chroma(
+        #     collection_name=settings.CHROMA_COLLECTION,
+        #     embedding_function=self._embeddings,
+        #     client_settings={
+        #         "chroma_server_host": settings.CHROMA_HOST,
+        #         "chroma_server_http_port": str(settings.CHROMA_PORT),
+        #     },
+        #     collection_metadata={"hf:space_type": "cosine"},
+        # )
+        # 1. Properly initialize the Embedding Model
         self._embeddings = OllamaEmbeddings(
             model="nomic-embed-text", base_url=settings.OLLAMA_BASE_URL
         )
+
+        # 2. Use HttpClient for Docker-to-Docker communication
+        # This bypasses the 'dict' attribute error entirely
+        self.client = chromadb.HttpClient(
+            host=settings.CHROMA_HOST,
+            port=settings.CHROMA_PORT,
+            settings=ChromaSettings(allow_reset=True, anonymized_telemetry=False),
+        )
+
+        # 3. Connect the LangChain wrapper to the existing client
         self._store = Chroma(
+            client=self.client,
             collection_name=settings.CHROMA_COLLECTION,
             embedding_function=self._embeddings,
-            client_settings={
-                "chroma_server_host": settings.CHROMA_HOST,
-                "chroma_server_http_port": str(settings.CHROMA_PORT),
-            },
-            collection_metadata={"hf:space_type": "cosine"},
+            collection_metadata={
+                "hnsw:space": "cosine"
+            },  # Fix: 'hnsw:space' is the correct key
         )
 
     def upsert_documents(self, chunks: list[dict]) -> None:
