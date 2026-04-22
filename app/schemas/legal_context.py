@@ -12,7 +12,7 @@ class ReferenceSource(
 
 
 class LegalReference(BaseModel):
-    doc_id: str
+    doc_id: int
     title: str
     text: str  # the relevant passage
     court: Optional[str] = None
@@ -34,6 +34,7 @@ class LegalSearch(BaseModel):
     title: str
     fragment: str
     doc_source: str
+    citations: list[dict]
 
 
 class LegalSearchResponse(BaseModel):
@@ -41,7 +42,7 @@ class LegalSearchResponse(BaseModel):
 
 
 class DocumentContent(BaseModel):
-    doc_id: str
+    doc_id: int
     title: str
     doc: str
     published_date: Optional[str] = None

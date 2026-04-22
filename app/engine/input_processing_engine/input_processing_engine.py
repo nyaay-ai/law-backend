@@ -91,6 +91,42 @@ class InputProcessingEngine:
                 "message": "Validation result generated",
             }
 
+    async def test_reference_retrieval(self, validation_result):
+        validation_data = DraftContext(
+            draft_type=validation_result["draft_type"],
+            jurisdiction=validation_result["jurisdiction"],
+            court_type=validation_result["court_type"],
+            legal_issue=validation_result["legal_issue"],
+            intent=validation_result["intent"],
+            urgency=validation_result["urgency"],
+            parties=validation_result["parties"],
+            facts=validation_result["facts"],
+            dates=validation_result["dates"],
+            relief=validation_result["relief"],
+            summary=validation_result["summary"],
+            language=validation_result["language"],
+            missing_fields=validation_result["missing_fields"],
+            confidence=validation_result["confidence"],
+        )
+        references = await ReferenceRetrieval().retrieve_references(validation_data)
+
+        print("Retrieved legal context references:", references)
+
+        generated_prompt = PromptGenerator().generate_prompt(
+            validation_data, references
+        )
+
+        print("Generated prompt gist:", generated_prompt)
+
+        validated_prompt = PromptValidator().run_validation_loop(generated_prompt)
+
+        print("Final validated prompt:", validated_prompt)
+
+        return {
+            "validation_result": validated_prompt,
+            "message": "Validation result generated",
+        }
+
     def normalize_enum(self, value, field):
         if not value:
             return "unknown"

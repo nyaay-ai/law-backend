@@ -13,3 +13,12 @@ class InputProcessingPayload(BaseModel):
 class InputProcessingResponse(BaseModel):
     message: str
     missing_fields: list[str]
+
+
+class ReferencePayload(BaseModel):
+    fields: Dict[str, Any]
+
+
+class ReferenceRetrievalResponse(BaseModel):
+    message: str
+    missing_fields: list[str]

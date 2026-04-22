@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     CHROMA_HOST: str = "chromadb"
     CHROMA_PORT: int = 8000
 
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_BASE_URL: str = "http://host.docker.internal:11434"
     CHROMA_COLLECTION: str = "legal-refs"
     RAG_RELEVANCE_THRESHOLD: float = 0.65
     RAG_MIN_RESULTS: int = 2

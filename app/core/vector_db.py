@@ -15,6 +15,9 @@ splitter = RecursiveCharacterTextSplitter(
     separators=["\n\n", "\n", "। ", ". ", " ", ""],
 )
 
+MAX_CHUNKS_PER_DOC = 30
+BATCH_SIZE = 500
+
 
 class VectorStore:
     def __init__(self):
@@ -61,11 +64,13 @@ class VectorStore:
         if not chunks:
             return
 
-        self._store.add_texts(
-            texts=[c["text"] for c in chunks],
-            ids=[c["id"] for c in chunks],
-            metadatas=[c["metadata"] for c in chunks],
-        )
+        for i in range(0, len(chunks), BATCH_SIZE):
+            batch = chunks[i : i + BATCH_SIZE]
+            self._store.add_texts(
+                texts=[c["text"] for c in batch],
+                ids=[c["id"] for c in batch],
+                metadatas=[c["metadata"] for c in batch],
+            )
 
     def query(
         self, query: str, draft_type: str, k: int = 5
@@ -114,6 +119,7 @@ class VectorStore:
 
         for doc in documents:
             doc_chunks = splitter.split_text(doc["full_text"])
+            doc_chunks = doc_chunks[:MAX_CHUNKS_PER_DOC]
 
             for i, chunk_text in enumerate(doc_chunks):
                 # Deterministic chunk ID — same doc + same chunk index = same ID
@@ -127,9 +133,9 @@ class VectorStore:
                         "metadata": {
                             "doc_id": doc["doc_id"],
                             "title": doc["title"],
-                            "court": doc["court"] or "",
+                            "court": doc["docsource"] or "",
                             "date": doc["date"] or "",
-                            "citation": doc["citation"] or "",
+                            "citation": doc["citations"] or "",
                             "draft_type": draft_type,
                             "jurisdiction": jurisdiction or "",
                             "chunk_index": i,

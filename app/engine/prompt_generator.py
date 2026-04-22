@@ -58,7 +58,11 @@ class PromptGenerator:
         template = self._get_template(ctx.draft_type)
 
         # Build parties list with roles from DraftContext
-        parties = [{"name": p.name, "role": p.role, "address": ""} for p in ctx.parties]
+        # parties = [{"name": p.name, "role": p.role, "address": ""} for p in ctx.parties]
+        parties = {
+            "plaintiff": ctx.parties.get("plaintiff"),
+            "defendant": ctx.parties.get("defendant"),
+        }
 
         # Determine tonality from user profile + language detection
         language = ctx.language or "en"
@@ -71,7 +75,10 @@ class PromptGenerator:
 
         # Derive court name from jurisdiction
         jurisdiction = ctx.jurisdiction or "Delhi"
-        court_name = self._resolve_court_name(ctx.draft_type, jurisdiction)
+        print("ctx.parties:", ctx.draft_type)
+        court_name = self._resolve_court_name(
+            draft_type=ctx.draft_type, jurisdiction=jurisdiction
+        )
 
         # Cause of action — first meaningful fact if not explicitly extracted
         cause_of_action = ctx.facts[0] if ctx.facts else "as stated in the facts above"
@@ -82,7 +89,7 @@ class PromptGenerator:
         ]
 
         return PromptGist(
-            draft_type=ctx.draft_type.value,
+            draft_type=ctx.draft_type,
             court_name=court_name,
             jurisdiction=jurisdiction,
             parties=parties,
@@ -96,7 +103,7 @@ class PromptGenerator:
             raw_refs=[ref.text for ref in legal_ctx.references],
         )
 
-    def _resolve_court_name(draft_type: DraftType, jurisdiction: str) -> str:
+    def _resolve_court_name(self, draft_type: DraftType, jurisdiction: str) -> str:
         """Map draft type + jurisdiction to the correct court name."""
         jurisdiction_lower = jurisdiction.lower()
 

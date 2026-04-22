@@ -15,30 +15,36 @@ HEADERS = {
 class IndianKanoonAPI:
     async def search_query(self, query: str, draft_type: str) -> list[LegalSearch]:
         params = {
-            "inputQuery": query,
-            "maxpages": 50,
+            "formInput": query,
         }
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{BASE_URL}search/", headers=HEADERS, params=params
+            # print(
+            #     f"Making request to Indian Kanoon API with header: {HEADERS} and params: {params}"
+            # )
+            response = await client.post(
+                f"{BASE_URL}search/",
+                headers=HEADERS,
+                params=params,
             )
             response.raise_for_status()
             data = response.json()
+            # print("Indian Kanoon API search response:", data)
             results = []
             for doc in data.get("docs", []):
                 results.append(
                     LegalSearch(
                         doc_id=doc.get("tid", ""),
                         title=doc.get("title", ""),
-                        fragment=doc.get("fragment", ""),
+                        fragment="",  # IK doesn't provide a neat fragment, so we'll fetch the full doc later
                         doc_source=doc.get("docsource", ""),
+                        citations=doc.get("cites", []),
                     )
                 )
             return results
 
     async def get_document(self, doc_id: str) -> DocumentContent:
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{BASE_URL}doc/{doc_id}", headers=HEADERS)
+            response = await client.post(f"{BASE_URL}doc/{doc_id}/", headers=HEADERS)
             response.raise_for_status()
             data = response.json()
             return DocumentContent(
