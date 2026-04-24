@@ -1,5 +1,6 @@
 from app.core.config import settings
 from app.llm import Gemini, LocalModel
+from app.llm.claude import Claude
 from app.llm.sarvam import SarvamModel
 
 
@@ -25,5 +26,10 @@ class Llm:
         elif model == "SARVAM":
             sarvam_service = SarvamModel()
             response = await sarvam_service.generate_response(user_prompt=user_prompt)
+        elif model == "CLAUDE":
+            claude_service = Claude()
+            response = await claude_service.generate_response(
+                user_prompt=user_prompt, history=history
+            )
 
         return response
