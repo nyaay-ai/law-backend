@@ -69,9 +69,8 @@ def get_process_missing_fields_prompt(data):
     Missing fields answers:
     {data.get("missing_fields_answers")}
 
-    Input:
-    Original: {data.get("original_text", "")}
-    Translated: {data.get("translated_text", "")}
+    Old JSON with missing fields:
+    {data.get("old_json")}
 
     Instructions:
     1) Provide accurate information for each missing field.
@@ -80,9 +79,32 @@ def get_process_missing_fields_prompt(data):
     4) Return STRICT JSON ONLY in the following format:
     5) Do not update anything else other than the missing fields.
 
-    Old JSON with missing fields:
-    {data.get("old_json")}
-
+    The ouput should be only in the below format. Do not deviate from it. Do not add any extra text. Do not update any fields other than the missing ones. If you are not sure about a field, set it to "unknown".
+    We have given you all the answers and you have to fill in the missing fields in the JSON based on those answers. The rest of the JSON should remain exactly the same as before.
+    Do not include any backticks, markdown, or explanations. Return ONLY valid JSON.
+    {{
+      "draft_type": "{"|".join(ALLOWED['draft_type'])}",
+      "intent": "{"|".join(ALLOWED['intent'])}",
+      "urgency": "{"|".join(ALLOWED['urgency'])}",
+      "court_type": "{"|".join(ALLOWED['court_type'])}",
+      "parties": {{
+        "plaintiff": [],
+        "defendant": [],
+        "other": []
+      }},
+      "facts": [],
+      "legal_issue": "",
+      "dates": [],
+      "jurisdiction": "",
+      "relief": "",
+      "summary": "",
+      "language": "{"|".join(ALLOWED['language'])}",
+      "missing_fields": [],
+      "confidence": {{
+        "draft_type": 0.0,
+        "entities": 0.0
+      }}
+    }}
     Return ONLY valid JSON. No extra text.
     """
 
