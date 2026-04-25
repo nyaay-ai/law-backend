@@ -9,10 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 from app.models.base import BaseModel
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+
 class CaseChatState(str, enum.Enum):
     COLLECTING = "COLLECTING"
     CONFIRMING = "CONFIRMING"
-    DONE       = "DONE"
+    FOLLOW_UP_PENDING = "FOLLOW_UP_PENDING"
+    DONE = "DONE"
 
 
 class CaseChat(BaseModel):
@@ -20,12 +23,19 @@ class CaseChat(BaseModel):
 
     id: Mapped[str] = mapped_column("ID", String(255), primary_key=True)
     case_id: Mapped[str] = mapped_column(
-        "CASE_ID", String(255), ForeignKey("cases.ID"),
-        nullable=False, unique=True, index=True,
+        "CASE_ID",
+        String(255),
+        ForeignKey("cases.ID"),
+        nullable=False,
+        unique=True,
+        index=True,
     )
     user_id: Mapped[str] = mapped_column(
-        "USER_ID", String(255), ForeignKey("users.ID"),
-        nullable=False, index=True,
+        "USER_ID",
+        String(255),
+        ForeignKey("users.ID"),
+        nullable=False,
+        index=True,
     )
     state: Mapped[CaseChatState] = mapped_column(
         "STATE",
@@ -37,9 +47,9 @@ class CaseChat(BaseModel):
         "MESSAGES", JSON, nullable=False, default=list
     )
     case: Mapped["Case"] = relationship(
-    "Case",
-    back_populates="chats",
-)
+        "Case",
+        back_populates="chats",
+    )
 
     def token(self) -> str:
         return "CCHAT"
@@ -48,7 +58,9 @@ class CaseChat(BaseModel):
         return [self.case_id, datetime.utcnow().isoformat()]
 
     @classmethod
-    async def create(cls, db: AsyncSession, *, case_id: str, user_id: str) -> "CaseChat":
+    async def create(
+        cls, db: AsyncSession, *, case_id: str, user_id: str
+    ) -> "CaseChat":
         now = datetime.utcnow()
         obj = cls(
             case_id=case_id,
@@ -64,12 +76,18 @@ class CaseChat(BaseModel):
         return obj
 
     @classmethod
-    async def get_by_case_id(cls, db: AsyncSession, case_id: str) -> Optional["CaseChat"]:
+    async def get_by_case_id(
+        cls, db: AsyncSession, case_id: str
+    ) -> Optional["CaseChat"]:
         result = await db.execute(select(cls).where(cls.case_id == case_id))
         return result.scalar_one_or_none()
 
     async def append_message(self, db: AsyncSession, text: str, sent_by: str) -> None:
-        entry = {"msg": text, "sentBy": sent_by, "createdAt": datetime.utcnow().isoformat()}
+        entry = {
+            "msg": text,
+            "sentBy": sent_by,
+            "createdAt": datetime.utcnow().isoformat(),
+        }
         self.messages = list(self.messages) + [entry]
         self.updated_at = datetime.utcnow()
         db.add(self)

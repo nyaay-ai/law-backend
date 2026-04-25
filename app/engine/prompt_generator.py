@@ -80,15 +80,19 @@ class PromptGenerator:
             draft_type=ctx.draft_type, jurisdiction=jurisdiction
         )
 
+        print(f"generate_prompt>>{court_name}")
+
         # Cause of action — first meaningful fact if not explicitly extracted
         cause_of_action = ctx.facts[0] if ctx.facts else "as stated in the facts above"
+
+        print(f"generate_prompt>>{cause_of_action}")
 
         # Relief — from DraftContext if present, else template hint
         relief = getattr(ctx, "relief_sought", []) or [
             "relief as this court deems fit and proper"
         ]
 
-        return PromptGist(
+        prompt_gist = PromptGist(
             draft_type=ctx.draft_type,
             court_name=court_name,
             jurisdiction=jurisdiction,
@@ -102,6 +106,8 @@ class PromptGenerator:
             template_key=template.TEMPLATE_KEY,
             raw_refs=[ref.text for ref in legal_ctx.references],
         )
+        print(f"generate_prompt>>prompt_gist>>{prompt_gist}")
+        return prompt_gist
 
     def _resolve_court_name(self, draft_type: DraftType, jurisdiction: str) -> str:
         """Map draft type + jurisdiction to the correct court name."""

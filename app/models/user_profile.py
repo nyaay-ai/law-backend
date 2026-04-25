@@ -17,15 +17,24 @@ class UserProfile(BaseModel):
 
     # FK back to users table
     user_id: Mapped[str] = mapped_column(
-        "USER_ID", String(255), ForeignKey("users.ID"), nullable=False, unique=True, index=True
+        "USER_ID",
+        String(255),
+        ForeignKey("users.ID"),
+        nullable=False,
+        unique=True,
+        index=True,
     )
 
     # ── Form / intake fields ──────────────────────────────────────────────
     name: Mapped[Optional[str]] = mapped_column("NAME", String(255), nullable=True)
     email: Mapped[Optional[str]] = mapped_column("EMAIL", String(255), nullable=True)
     address: Mapped[Optional[str]] = mapped_column("ADDRESS", Text, nullable=True)
-    case_description: Mapped[Optional[str]] = mapped_column("CASE_DESCRIPTION", Text, nullable=True)
-    relief_details: Mapped[Optional[str]] = mapped_column("RELIEF_DETAILS", Text, nullable=True)
+    case_description: Mapped[Optional[str]] = mapped_column(
+        "CASE_DESCRIPTION", Text, nullable=True
+    )
+    relief_details: Mapped[Optional[str]] = mapped_column(
+        "RELIEF_DETAILS", Text, nullable=True
+    )
 
     # ── Preference fields ─────────────────────────────────────────────────
     # preferred_language: language user is comfortable communicating in
@@ -37,7 +46,9 @@ class UserProfile(BaseModel):
         "LANGUAGE_FOR_DRAFT", String(100), nullable=True
     )
     # tonality: detected tone from sample documents or explicit user preference
-    tonality: Mapped[Optional[str]] = mapped_column("TONALITY", String(100), nullable=True)
+    tonality: Mapped[Optional[str]] = mapped_column(
+        "TONALITY", String(100), nullable=True
+    )
 
     # ── Document analysis ─────────────────────────────────────────────────
     # Raw text of any sample documents the user uploads (for re-analysis)
@@ -106,7 +117,7 @@ class UserProfile(BaseModel):
         profile.id = profile.compute_and_get_id()
         db.add(profile)
         await db.flush()
-        logger.info("Created blank UserProfile %s for user %s", profile.id, user_id)
+        logger.info("Created blank UserProfile {} for user {}", profile.id, user_id)
         return profile
 
     @classmethod
@@ -117,9 +128,7 @@ class UserProfile(BaseModel):
         return result.scalar_one_or_none()
 
     @classmethod
-    async def get_or_create(
-        cls, db: AsyncSession, *, user_id: str
-    ) -> "UserProfile":
+    async def get_or_create(cls, db: AsyncSession, *, user_id: str) -> "UserProfile":
         """Return existing profile or create a blank one."""
         profile = await cls.get_by_user_id(db, user_id)
         if profile is None:
@@ -147,11 +156,17 @@ class UserProfile(BaseModel):
         profile = await cls.get_or_create(db, user_id=user_id)
 
         allowed_fields = {
-            "name", "email", "address", "case_description", "relief_details",
-            "preferred_language", "language_for_draft", "tonality",
+            "name",
+            "email",
+            "address",
+            "case_description",
+            "relief_details",
+            "preferred_language",
+            "language_for_draft",
+            "tonality",
         }
         if field_key not in allowed_fields:
-            logger.warning("set_field: unknown field %r — storing in extra", field_key)
+            logger.warning("set_field: unknown field {} — storing in extra", field_key)
             profile.extra = {**profile.extra, field_key: value}
         else:
             setattr(profile, field_key, value)
@@ -159,7 +174,12 @@ class UserProfile(BaseModel):
         profile.updated_at = datetime.utcnow()
         db.add(profile)
         await db.flush()
-        logger.info("UserProfile %s: set %s=%r", profile.id, field_key, value[:80] if value else value)
+        logger.info(
+            "UserProfile {}: set {}={}",
+            profile.id,
+            field_key,
+            value[:80] if value else value,
+        )
         return profile
 
     @classmethod
@@ -175,8 +195,14 @@ class UserProfile(BaseModel):
         """
         profile = await cls.get_or_create(db, user_id=user_id)
         allowed_fields = {
-            "name", "email", "address", "case_description", "relief_details",
-            "preferred_language", "language_for_draft", "tonality",
+            "name",
+            "email",
+            "address",
+            "case_description",
+            "relief_details",
+            "preferred_language",
+            "language_for_draft",
+            "tonality",
             "sample_document_text",
         }
         extra_updates = {}
@@ -227,7 +253,7 @@ class UserProfile(BaseModel):
         db.add(profile)
         await db.flush()
         logger.info(
-            "Saved document analysis for user %s: lang=%s draft_lang=%s tonality=%s",
+            "Saved document analysis for user {}: lang={} draft_lang={} tonality={}",
             user_id,
             profile.preferred_language,
             profile.language_for_draft,

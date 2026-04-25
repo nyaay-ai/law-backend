@@ -6,9 +6,14 @@ from app.models.user_profile import UserProfile
 from app.models.user_chat import UserChats
 
 __all__ = [
-    "Base", "BaseModel",
+    "Base",
+    "BaseModel",
     "User",
-    "Case", "CaseOrderStatus", "CaseDataStatus", "FileStatus",
+    "Case",
+    "CaseOrderStatus",
+    "CaseDataStatus",
+    "FileStatus",
     "CaseChat",
-    "UserProfile","UserChats"
+    "UserProfile",
+    "UserChats",
 ]

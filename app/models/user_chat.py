@@ -90,9 +90,7 @@ class UserChats(db.base):
         cls, session: AsyncSession, *, user_id: str
     ) -> "UserChats | None":
         """Fetch the single chat row for a user, or return None."""
-        result = await session.execute(
-            select(cls).where(cls.user_id == user_id)
-        )
+        result = await session.execute(select(cls).where(cls.user_id == user_id))
         return result.scalar_one_or_none()
 
     @classmethod
@@ -132,6 +130,7 @@ class UserChats(db.base):
 
             # Explicitly flag columns as modified for SQLAlchemy's change tracking
             from sqlalchemy.orm.attributes import flag_modified
+
             flag_modified(row, "all_chats")
             flag_modified(row, "last_message_in_chat")
 

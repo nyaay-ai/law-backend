@@ -11,14 +11,16 @@ from app.routes import api_router
 # Import all models so metadata is populated before create_all
 import app.models  # noqa: F401
 from loguru import logger
+
 logger.remove()
 
 logger.add(
     sys.stdout,
     format="{time:YYYY-MM-DD HH:mm:ss.SSS}:{function}:{file.name}:{line}:{level}:{message}",
     level="INFO",
-    colorize=False
+    colorize=False,
 )
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -48,7 +50,7 @@ def create_app() -> FastAPI:
 
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
-    @app.get("/health", tags=["health"])
+    @app.post("/health", tags=["health"])
     async def health_check():
         return {"status": "ok", "version": settings.APP_VERSION}
 

@@ -10,10 +10,10 @@ def get_classification_prompt(translated_text, original_text):
     Return STRICT JSON ONLY in the following format:
 
     {{
-      "draft_type": "{"|".join(ALLOWED['draft_type'])}",
-      "intent": "{"|".join(ALLOWED['intent'])}",
-      "urgency": "{"|".join(ALLOWED['urgency'])}",
-      "court_type": "{"|".join(ALLOWED['court_type'])}",
+      "draft_type": "{"|".join(ALLOWED["draft_type"])}",
+      "intent": "{"|".join(ALLOWED["intent"])}",
+      "urgency": "{"|".join(ALLOWED["urgency"])}",
+      "court_type": "{"|".join(ALLOWED["court_type"])}",
       "parties": {{
         "plaintiff": [],
         "defendant": [],
@@ -25,7 +25,7 @@ def get_classification_prompt(translated_text, original_text):
       "jurisdiction": "",
       "relief": "",
       "summary": "",
-      "language": "{"|".join(ALLOWED['language'])}",
+      "language": "{"|".join(ALLOWED["language"])}",
       "missing_fields": [],
       "confidence": {{
         "draft_type": 0.0,
@@ -83,10 +83,10 @@ def get_process_missing_fields_prompt(data):
     We have given you all the answers and you have to fill in the missing fields in the JSON based on those answers. The rest of the JSON should remain exactly the same as before.
     Do not include any backticks, markdown, or explanations. Return ONLY valid JSON.
     {{
-      "draft_type": "{"|".join(ALLOWED['draft_type'])}",
-      "intent": "{"|".join(ALLOWED['intent'])}",
-      "urgency": "{"|".join(ALLOWED['urgency'])}",
-      "court_type": "{"|".join(ALLOWED['court_type'])}",
+      "draft_type": "{"|".join(ALLOWED["draft_type"])}",
+      "intent": "{"|".join(ALLOWED["intent"])}",
+      "urgency": "{"|".join(ALLOWED["urgency"])}",
+      "court_type": "{"|".join(ALLOWED["court_type"])}",
       "parties": {{
         "plaintiff": [],
         "defendant": [],
@@ -98,7 +98,7 @@ def get_process_missing_fields_prompt(data):
       "jurisdiction": "",
       "relief": "",
       "summary": "",
-      "language": "{"|".join(ALLOWED['language'])}",
+      "language": "{"|".join(ALLOWED["language"])}",
       "missing_fields": [],
       "confidence": {{
         "draft_type": 0.0,

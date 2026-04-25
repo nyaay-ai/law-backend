@@ -1,5 +1,6 @@
 import json
 
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.engine.constants import ALLOWED, FIELD_QUESTIONS
@@ -10,11 +11,11 @@ from app.engine.input_processing_engine.util import (
 from app.engine.prompt_generator import PromptGenerator
 from app.engine.prompt_validator import PromptValidator
 from app.engine.reference_retrieval import ReferenceRetrieval
-from app.llm.llm import Llm
+from app.llm.llm import Llm, reset_current_case_id, set_current_case_id
 from app.models.case import Case
 from app.schemas.legal_context import DraftContext
 
-llm = Llm()
+llm = Llm(json_mode=True)
 
 
 class InputProcessingEngine:
@@ -26,26 +27,40 @@ class InputProcessingEngine:
         original: str = None,
         missing_fields_answers: str = None,
     ) -> dict:
+        token = set_current_case_id(case_id)
+        logger.info(
+            f"InputProcessingEngine>>classification>>{case_id}>>{translated}>>{original}>>{missing_fields_answers}"
+        )
 
-        print("Generating prompt for LLM... Classification in progress.")
+        logger.info("Generating prompt for LLM... Classification in progress.")
 
         if missing_fields_answers and case_id:
-            print("Generating prompt for LLM... Processing missing fields.")
-            response = self.generate_missing_fields_data(missing_fields_answers, "{}")
+            logger.info("Generating prompt for LLM... Processing missing fields.")
+            response = await self.generate_missing_fields_data(
+                missing_fields_answers, "{}"
+            )
         elif translated and original:
             prompt = get_classification_prompt(
                 translated_text=translated, original_text=original
             )
             response = await llm.generate_response(user_prompt=prompt)
 
-        print("Generating prompt for LLM... validation in progress.")
+        logger.info(f"Generating prompt for LLM... validation in progress.>>{response}")
+        logger.info("------")
 
         validation_result = self.validate_output(response)
         follow_up_questions = self.generate_followups(validation_result)
+        logger.info(
+            f"Generating prompt for LLM... validation in progress.>>{response}>>{validation_result}>>{follow_up_questions}"
+        )
+        logger.info("------")
 
-        print("latest response from llm:", validation_result)
+        logger.info("latest response from llm:", validation_result)
 
         if case_id:
+            logger.info(
+                f"InputProcessingEngine>>classification>>{case_id}>>{translated}>>{original}>>{missing_fields_answers}>>going to update db>>{validation_result}"
+            )
             await Case.update_by_id(
                 db,
                 case_id,
@@ -54,6 +69,7 @@ class InputProcessingEngine:
 
         if len(follow_up_questions) > 0:
             # TODO: add function call to send the follow up questions to the backend
+            reset_current_case_id(token)
             return {"follow_up_questions": follow_up_questions}
         else:
             validation_data = DraftContext(
@@ -72,20 +88,25 @@ class InputProcessingEngine:
                 missing_fields=validation_result["missing_fields"],
                 confidence=validation_result["confidence"],
             )
-            references = await ReferenceRetrieval().retrieve_references(validation_data)
+            referenceRetrievalEngine = ReferenceRetrieval()
+            references = await referenceRetrievalEngine.retrieve_references(
+                validation_data
+            )
 
-            print("Retrieved legal context references:", references)
+            logger.info(
+                f"Retrieved legal context references:{references}, {type(references)}"
+            )
 
             generated_prompt = PromptGenerator().generate_prompt(
                 validation_data, references
             )
 
-            print("Generated prompt gist:", generated_prompt)
+            logger.info(f"Generated prompt gist:{generated_prompt}")
 
             validated_prompt = PromptValidator().run_validation_loop(generated_prompt)
 
-            print("Final validated prompt:", validated_prompt)
-
+            logger.info(f"Final validated prompt:{validated_prompt}")
+            reset_current_case_id(token)
             return {
                 "validation_result": validated_prompt,
                 "message": "Validation result generated",
@@ -110,17 +131,17 @@ class InputProcessingEngine:
         )
         references = await ReferenceRetrieval().retrieve_references(validation_data)
 
-        print("Retrieved legal context references:", references)
+        logger.info("Retrieved legal context references:", references)
 
         generated_prompt = PromptGenerator().generate_prompt(
             validation_data, references
         )
 
-        print("Generated prompt gist:", generated_prompt)
+        logger.info("Generated prompt gist:", generated_prompt)
 
         validated_prompt = PromptValidator().run_validation_loop(generated_prompt)
 
-        print("Final validated prompt:", validated_prompt)
+        logger.info("Final validated prompt:", validated_prompt)
 
         return {
             "validation_result": validated_prompt,
@@ -202,11 +223,13 @@ class InputProcessingEngine:
             FIELD_QUESTIONS[f] for f in ctx["missing_fields"] if f in FIELD_QUESTIONS
         ]
 
-    def generate_missing_fields_data(self, missing_fields_answers: str, old_json: str):
+    async def generate_missing_fields_data(
+        self, missing_fields_answers: str, old_json: str
+    ):
         data = {"missing_fields_answers": missing_fields_answers, "old_json": old_json}
         prompt = get_process_missing_fields_prompt(data)
 
-        response = llm.generate_response(user_prompt=prompt)
-        print("Response from LLM for missing fields:", response)
+        response = await llm.generate_response(user_prompt=prompt)
+        logger.info("Response from LLM for missing fields:", response)
 
         return response

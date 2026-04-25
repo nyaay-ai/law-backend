@@ -9,7 +9,7 @@ class ReferenceRetrieval:
 
     async def retrieve_references(self, ctx: DraftContext) -> LegalContext:
         print(
-            f"Starting reference retrieval for draft context: {ctx.draft_type}, {ctx.legal_issue} in {ctx.jurisdiction} {ctx.court_type}"
+            f"retrieve_references::Starting reference retrieval for draft context: {ctx.draft_type}, {ctx.legal_issue} in {ctx.jurisdiction} {ctx.court_type}"
         )
         query = (
             f"{ctx.draft_type.replace('_', ' ')} "
@@ -27,7 +27,7 @@ class ReferenceRetrieval:
         if not has_docs:
             raw_docs = await IndianKanoonAPI().search_query(query, draft_type)
             print(
-                f"Indian Kanoon API returned {len(raw_docs)} documents for query '{query}'.",
+                f"retrieve_references::Indian Kanoon API returned {len(raw_docs)} documents for query '{query}'.",
                 raw_docs,
             )
 
@@ -35,10 +35,12 @@ class ReferenceRetrieval:
             if raw_docs:
                 new_raw_docs = raw_docs[:5]
                 for doc in new_raw_docs:
-                    print(f"Fetching full document for doc_id: {doc.doc_id}")
+                    print(
+                        f"retrieve_references::Fetching full document for doc_id: {doc.doc_id}"
+                    )
                     full_doc = await IndianKanoonAPI().get_document(doc.doc_id)
                     print(
-                        f"Fetched document content for doc_id: {doc.doc_id}, length: {len(full_doc.doc)}"
+                        f"retrieve_references::Fetched document content for doc_id: {doc.doc_id}, length: {len(full_doc.doc)}"
                     )
 
                     new_doc = {
@@ -62,13 +64,17 @@ class ReferenceRetrieval:
         references = [ref for ref, score in results]
 
         print(
-            f"Reference retrieval for query '{query}' returned {len(references)} references.",
+            f"retrieve_references::Reference retrieval for query '{query}' returned {len(references)} references.",
             references,
         )
 
-        return LegalContext(
+        response = LegalContext(
             references=references,
             cache_hit=has_docs,
             draft_context_id="",
             query_used=query,
         )
+
+        print(f"retrieve_references::response:{response}")
+
+        return response
