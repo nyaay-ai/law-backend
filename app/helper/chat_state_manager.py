@@ -1,10 +1,10 @@
-
 import json
 
 import os
 from datetime import datetime, timezone
 from app.database.redis_session import redis_cursor
 from loguru import logger
+
 SESSION_TTL = 60 * 60 * 24  # 24 hours
 
 
@@ -42,4 +42,4 @@ async def append_chat_message(user_id: str, text: str, sent_by: str) -> None:
     async with db.transaction() as session:
         await UserChats.append_message(session, user_id=user_id, message=message)
 
-    logger.debug("Chat appended for user %s [%s]: %r", user_id, sent_by, text[:60])
+    logger.debug("Chat appended for user {} [{}]: {}", user_id, sent_by, text[:60])

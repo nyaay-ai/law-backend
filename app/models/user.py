@@ -16,13 +16,25 @@ class User(BaseModel):
 
     id: Mapped[str] = mapped_column("ID", String(255), primary_key=True)
     name: Mapped[str] = mapped_column("NAME", String(255), nullable=False)
-    preferred_language: Mapped[Optional[str]] = mapped_column("PREFERRED_LANGUAGE", String(255), nullable=True)
-    phone_number: Mapped[Optional[str]] = mapped_column("PHONE_NUMBER", String(255), nullable=True)
-    language_for_draft: Mapped[Optional[str]] = mapped_column("LANGUAGE_FOR_DRAFT", String(255), nullable=True)
-    existing_document_prompt: Mapped[Optional[str]] = mapped_column("EXISTING_DOCUMENT_PROMPT", Text, nullable=True)
-    user_other_details: Mapped[Dict[str, Any]] = mapped_column("USER_OTHER_DETAILS", JSON, nullable=False, default=dict)
+    preferred_language: Mapped[Optional[str]] = mapped_column(
+        "PREFERRED_LANGUAGE", String(255), nullable=True
+    )
+    phone_number: Mapped[Optional[str]] = mapped_column(
+        "PHONE_NUMBER", String(255), nullable=True
+    )
+    language_for_draft: Mapped[Optional[str]] = mapped_column(
+        "LANGUAGE_FOR_DRAFT", String(255), nullable=True
+    )
+    existing_document_prompt: Mapped[Optional[str]] = mapped_column(
+        "EXISTING_DOCUMENT_PROMPT", Text, nullable=True
+    )
+    user_other_details: Mapped[Dict[str, Any]] = mapped_column(
+        "USER_OTHER_DETAILS", JSON, nullable=False, default=dict
+    )
 
-    hashed_password: Mapped[str] = mapped_column("HASHED_PASSWORD", String(255), nullable=False)
+    hashed_password: Mapped[str] = mapped_column(
+        "HASHED_PASSWORD", String(255), nullable=False
+    )
 
     def token(self) -> str:
         return "USR"
@@ -66,12 +78,16 @@ class User(BaseModel):
         return result.scalar_one_or_none()
 
     @classmethod
-    async def get_by_phone(cls, db: AsyncSession, phone_number: str) -> Optional["User"]:
+    async def get_by_phone(
+        cls, db: AsyncSession, phone_number: str
+    ) -> Optional["User"]:
         result = await db.execute(select(cls).where(cls.phone_number == phone_number))
         return result.scalar_one_or_none()
 
     @classmethod
-    async def authenticate(cls, db: AsyncSession, phone_number: str, password: str) -> Optional[str]:
+    async def authenticate(
+        cls, db: AsyncSession, phone_number: str, password: str
+    ) -> Optional[str]:
         """Returns a JWT token if credentials are valid, else None."""
         user = await cls.get_by_phone(db, phone_number)
         if not user or not verify_password(password, user.hashed_password):

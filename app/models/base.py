@@ -30,7 +30,11 @@ class BaseModel(Base):
         "CREATED_AT", DateTime, nullable=False, default=datetime.utcnow
     )
     updated_at: Mapped[datetime] = mapped_column(
-        "UPDATED_AT", DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+        "UPDATED_AT",
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
     )
     meta_data: Mapped[Dict[Any, Any]] = mapped_column(
         "METADATA", JSON, nullable=False, default=dict

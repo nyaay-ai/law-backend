@@ -42,3 +42,6 @@ format:
 
 psql:
 	docker exec -it lawyer-ai-postgres psql -U postgres lawyer_ai
+
+ruff:
+	ruff format .

@@ -20,6 +20,7 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 from app.database.session import db  # adjust import if needed
 from app.models import *
+
 target_metadata = db.base.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -56,6 +57,7 @@ from app.database.session import db
 
 from sqlalchemy import create_engine
 
+
 def run_migrations_online() -> None:
     url = config.get_main_option("sqlalchemy.url")
 
@@ -73,6 +75,8 @@ def run_migrations_online() -> None:
 
         with context.begin_transaction():
             context.run_migrations()
+
+
 if context.is_offline_mode():
     run_migrations_offline()
 else:

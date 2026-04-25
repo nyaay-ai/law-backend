@@ -38,7 +38,7 @@ class Case(BaseModel):
         String(255),
         ForeignKey("users.ID"),
         nullable=False,
-        unique=True,
+        unique=False,
         index=True,
     )
 
@@ -140,9 +140,7 @@ class Case(BaseModel):
         db: AsyncSession,
         case_id: str,
     ) -> Optional["Case"]:
-        result = await db.execute(
-            select(cls).where(cls.id == case_id)
-        )
+        result = await db.execute(select(cls).where(cls.id == case_id))
         return result.scalar_one_or_none()
 
     @classmethod
@@ -151,9 +149,7 @@ class Case(BaseModel):
         db: AsyncSession,
         user_id: str,
     ) -> List["Case"]:
-        result = await db.execute(
-            select(cls).where(cls.user_id == user_id)
-        )
+        result = await db.execute(select(cls).where(cls.user_id == user_id))
         return list(result.scalars().all())
 
     # NEW: fetch active case for user
@@ -164,9 +160,7 @@ class Case(BaseModel):
         user_id: str,
     ) -> Optional["Case"]:
         result = await db.execute(
-            select(cls)
-            .where(cls.user_id == user_id, cls.is_active.is_(True))
-            .limit(1)
+            select(cls).where(cls.user_id == user_id, cls.is_active.is_(True)).limit(1)
         )
         return result.scalar_one_or_none()
 
@@ -244,38 +238,45 @@ class Case(BaseModel):
             f"order_status={self.case_order_status} "
             f"is_active={self.is_active}>"
         )
-    
+
     @classmethod
     async def update_by_id(
-        cls,
-        db: AsyncSession,
-        case_id: str,
-        **kwargs
+        cls, db: AsyncSession, case_id: str, **kwargs
     ) -> Optional["Case"]:
         """
         Updates a case by its ID with the provided kwargs.
         Returns the updated case object or None if not found.
         """
         now = datetime.utcnow()
-        
+
         # We add updated_at automatically to the update values
         update_data = {**kwargs, "updated_at": now}
 
         # Execute the update statement
-        query = (
-            update(cls)
-            .where(cls.id == case_id)
-            .values(**update_data)
-        )
-        
+        query = update(cls).where(cls.id == case_id).values(**update_data)
+
         result = await db.execute(query)
-        
+
         # Check if any row was actually updated
         if result.rowcount == 0:
             return None
 
         await db.flush()
-        
+
         # Return the refreshed object
         return await cls.get_by_id(db, case_id)
-    
+
+    @classmethod
+    async def get_recent(
+        cls,
+        db: AsyncSession,
+        user_id: str,
+        n: int,
+    ) -> List["Case"]:
+        result = await db.execute(
+            select(cls)
+            .where(cls.user_id == user_id)
+            .order_by(cls.created_at.desc())
+            .limit(n)
+        )
+        return list(result.scalars().all())
