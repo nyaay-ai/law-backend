@@ -71,27 +71,32 @@ class PromptValidator:
         )
 
     def _field_present(self, gist: PromptGist, field: str) -> bool:
-        """Check if a mandatory field has meaningful content in the gist."""
+        # Helper — works on Party objects now, not dicts
+        def has_role(*roles):
+            return any(p.role in roles for p in gist.parties)
+
+        def has_address_for_role(*roles):
+            return any(
+                p.address and p.address.strip() for p in gist.parties if p.role in roles
+            )
+
+        def has_designation_for_role(*roles):
+            return any(p.designation for p in gist.parties if p.role in roles)
+
         field_mapping = {
-            # civil suit
+            # ── civil suit ───────────────────────────────────────────
             "court_name": lambda g: bool(g.court_name),
-            "plaintiff_name": lambda g: any(
-                p["role"] in ["plaintiff", "petitioner", "complainant", "sender"]
-                for p in g.parties
+            "plaintiff_name": lambda g: has_role(
+                "plaintiff", "petitioner", "complainant", "sender"
             ),
-            "plaintiff_address": lambda g: any(
-                p.get("address")
-                for p in g.parties
-                if p["role"] in ["plaintiff", "petitioner"]
+            "plaintiff_address": lambda g: has_address_for_role(
+                "plaintiff", "petitioner", "complainant", "sender"
             ),
-            "defendant_name": lambda g: any(
-                p["role"] in ["defendant", "respondent", "accused", "recipient"]
-                for p in g.parties
+            "defendant_name": lambda g: has_role(
+                "defendant", "respondent", "accused", "recipient"
             ),
-            "defendant_address": lambda g: any(
-                p.get("address")
-                for p in g.parties
-                if p["role"] in ["defendant", "respondent"]
+            "defendant_address": lambda g: has_address_for_role(
+                "defendant", "respondent", "accused", "recipient"
             ),
             "facts": lambda g: len(g.facts_numbered) >= 3,
             "cause_of_action": lambda g: (
@@ -103,11 +108,9 @@ class PromptValidator:
                 "rs" in f.lower() or "rupee" in f.lower() or "₹" in f
                 for f in g.facts_numbered
             ),
-            # bail
-            "accused_name": lambda g: any(p["role"] == "accused" for p in g.parties),
-            "accused_address": lambda g: any(
-                p.get("address") for p in g.parties if p["role"] == "accused"
-            ),
+            # ── bail application ─────────────────────────────────────
+            "accused_name": lambda g: has_role("accused"),
+            "accused_address": lambda g: has_address_for_role("accused"),
             "fir_number": lambda g: any("fir" in f.lower() for f in g.facts_numbered),
             "fir_sections": lambda g: len(g.legal_sections) >= 1,
             "police_station": lambda g: any(
@@ -115,72 +118,44 @@ class PromptValidator:
             ),
             "arrest_date": lambda g: (
                 len(g.dates) >= 1
-                if hasattr(g, "dates")
-                else any(
+                or any(
                     "arrest" in f.lower() or "गिरफ्तार" in f for f in g.facts_numbered
                 )
             ),
             "grounds_for_bail": lambda g: len(g.facts_numbered) >= 3,
-            # writ
-            "petitioner_name": lambda g: any(
-                p["role"] == "petitioner" for p in g.parties
-            ),
-            "petitioner_address": lambda g: any(
-                p.get("address") for p in g.parties if p["role"] == "petitioner"
-            ),
-            "respondent_name": lambda g: any(
-                p["role"] == "respondent" for p in g.parties
-            ),
-            "respondent_designation": lambda g: any(
-                p.get("designation") for p in g.parties if p["role"] == "respondent"
-            ),
+            # ── writ petition ────────────────────────────────────────
+            "petitioner_name": lambda g: has_role("petitioner"),
+            "petitioner_address": lambda g: has_address_for_role("petitioner"),
+            "respondent_name": lambda g: has_role("respondent"),
+            "respondent_designation": lambda g: has_designation_for_role("respondent"),
             "high_court_name": lambda g: "HIGH COURT" in g.court_name.upper(),
             "article_invoked": lambda g: any(
                 "226" in s or "227" in s or "32" in s for s in g.legal_sections
             ),
-            "writ_type": lambda g: any(
-                w in " ".join(g.relief_sought).upper()
-                for w in ["MANDAMUS", "CERTIORARI", "PROHIBITION", "HABEAS"]
-            ),
+            "writ_type": lambda g: bool(g.writ_type),
             "grounds": lambda g: len(g.facts_numbered) >= 2,
-            # legal notice
-            "sender_name": lambda g: any(
-                p["role"] in ["sender", "client", "noticee_sender"] for p in g.parties
-            ),
-            "sender_address": lambda g: any(
-                p.get("address") for p in g.parties if p["role"] in ["sender", "client"]
-            ),
-            "recipient_name": lambda g: any(
-                p["role"] in ["recipient", "noticee"] for p in g.parties
-            ),
-            "recipient_address": lambda g: any(
-                p.get("address")
-                for p in g.parties
-                if p["role"] in ["recipient", "noticee"]
-            ),
-            "advocate_name": lambda g: True,  # always inferred from profile
+            # ── legal notice ─────────────────────────────────────────
+            "sender_name": lambda g: has_role("sender", "client"),
+            "sender_address": lambda g: has_address_for_role("sender", "client"),
+            "recipient_name": lambda g: has_role("recipient", "noticee"),
+            "recipient_address": lambda g: has_address_for_role("recipient", "noticee"),
+            "advocate_name": lambda g: True,
             "demand": lambda g: len(g.relief_sought) >= 1,
             "deadline_days": lambda g: any(
                 "day" in r.lower() or "दिन" in r for r in g.relief_sought
             ),
             "legal_basis": lambda g: len(g.legal_sections) >= 1,
-            # criminal complaint
-            "complainant_name": lambda g: any(
-                p["role"] == "complainant" for p in g.parties
-            ),
-            "complainant_address": lambda g: any(
-                p.get("address") for p in g.parties if p["role"] == "complainant"
-            ),
-            "incident_date": lambda g: (
-                len(g.dates) >= 1 if hasattr(g, "dates") else True
-            ),
+            # ── criminal complaint ───────────────────────────────────
+            "complainant_name": lambda g: has_role("complainant"),
+            "complainant_address": lambda g: has_address_for_role("complainant"),
+            "incident_date": lambda g: len(g.dates) >= 1 or len(g.facts_numbered) >= 1,
             "incident_place": lambda g: bool(g.jurisdiction),
             "sections_invoked": lambda g: len(g.legal_sections) >= 1,
         }
 
         checker = field_mapping.get(field)
         if checker is None:
-            return True  # unknown field — don't penalise
+            return True
         try:
             return checker(gist)
         except Exception:
@@ -212,22 +187,28 @@ class PromptValidator:
         return ValidatedPrompt(gist=gist, validation=result, final=final)
 
     def _patch_gist(self, gist: PromptGist, answers: list[dict]) -> PromptGist:
-        """Apply user's WhatsApp answers back into the gist."""
-        data = gist.model_dump()
+        data = gist.model_dump()  # converts Party objects to dicts automatically
 
         for answer_item in answers:
             field = answer_item.get("field")
-            value = answer_item.get("answer", "")
+            value = answer_item.get("answer", "").strip()
 
             if field == "valuation_amount":
                 data["facts_numbered"].append(
-                    f"That the suit is valued at Rs. {value}/- for court fees."
+                    f"That the suit is valued at Rs. {value}/- for the purpose of jurisdiction and court fees."
                 )
-            elif field in ["recipient_address", "defendant_address", "accused_address"]:
+
+            elif field in ["defendant_address", "recipient_address", "accused_address"]:
                 for p in data["parties"]:
                     if p["role"] in ["defendant", "respondent", "accused", "recipient"]:
                         p["address"] = value
-            elif field in ["sender_address", "plaintiff_address", "petitioner_address"]:
+
+            elif field in [
+                "plaintiff_address",
+                "petitioner_address",
+                "sender_address",
+                "complainant_address",
+            ]:
                 for p in data["parties"]:
                     if p["role"] in [
                         "plaintiff",
@@ -236,8 +217,18 @@ class PromptValidator:
                         "complainant",
                     ]:
                         p["address"] = value
+
+            elif field == "respondent_designation":
+                for p in data["parties"]:
+                    if p["role"] == "respondent":
+                        p["designation"] = value
+
+            elif field == "writ_type":
+                data["writ_type"] = value
+
             elif field == "demand":
                 data["relief_sought"].append(value)
+
             elif field == "deadline_days":
                 data["relief_sought"] = [
                     r + f" within {value} days of receipt of this notice"
@@ -245,18 +236,29 @@ class PromptValidator:
                     else r
                     for r in data["relief_sought"]
                 ]
+
             elif field == "fir_number":
                 data["facts_numbered"].insert(
-                    0, f"That FIR No. {value} has been registered."
+                    0,
+                    f"That FIR No. {value} has been registered at the concerned Police Station.",
                 )
+
+            elif field == "police_station":
+                data["facts_numbered"].insert(
+                    1, f"That the FIR was registered at Police Station {value}."
+                )
+
             elif field == "arrest_date":
                 data["facts_numbered"].insert(
-                    1, f"That the applicant has been in custody since {value}."
+                    2, f"That the applicant has been in judicial custody since {value}."
                 )
+
             elif field == "grounds_for_bail":
                 data["facts_numbered"].append(f"That {value}.")
+
             elif field == "cause_of_action":
                 data["cause_of_action"] = value
+
             elif field == "jurisdiction":
                 data["jurisdiction"] = value
 

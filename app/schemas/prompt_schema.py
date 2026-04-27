@@ -4,6 +4,16 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class Party(BaseModel):
+    name: str
+    role: str  # plaintiff / defendant / petitioner / respondent / accused / complainant / sender / recipient
+    address: str = ""
+    age: Optional[str] = None
+    parentage: str = ""  # s/o, d/o, w/o — critical for Indian court docs
+    occupation: str = ""
+    designation: Optional[str] = None  # for govt respondents in writ petitions
+
+
 class ValidationStatus(str, Enum):
     PASSED = "passed"
     NEEDS_INFO = "needs_info"
@@ -14,15 +24,21 @@ class PromptGist(BaseModel):
     draft_type: str
     court_name: str
     jurisdiction: str
-    parties: dict  # [{name, role, address, age?}]
-    facts_numbered: list[str]  # numbered facts as they'll appear in doc
+    parties: list[Party]  # ← now a list, not a dict
+    facts_numbered: list[str]
     cause_of_action: str
-    relief_sought: list[str]  # list of prayers
-    legal_sections: list[str]  # IPC/CPC/BNS sections to cite
-    precedents: list[str]  # case citations from LegalContext refs
-    tonality: str  # "formal_hindi", "formal_english"
-    template_key: str  # which template to use in F6
-    raw_refs: list[str]  # raw reference texts passed to F6
+    relief_sought: list[str]
+    legal_sections: list[str]
+    precedents: list[str]
+    tonality: str
+    template_key: str
+    raw_refs: list[str]
+    writ_type: Optional[str] = (
+        None  # mandamus / certiorari / prohibition / habeas corpus
+    )
+    dates: list[str] = []
+    urgency: Optional[str] = None
+    summary: Optional[str] = None
 
 
 class ValidationResult(BaseModel):

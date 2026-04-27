@@ -137,11 +137,11 @@ class InputProcessingEngine:
             validation_data, references
         )
 
-        logger.info("Generated prompt gist:", generated_prompt)
+        logger.info(f"Generated prompt gist:{generated_prompt}")
 
         validated_prompt = PromptValidator().run_validation_loop(generated_prompt)
 
-        logger.info("Final validated prompt:", validated_prompt)
+        logger.info(f"Final validated prompt:{validated_prompt}")
 
         return {
             "validation_result": validated_prompt,
