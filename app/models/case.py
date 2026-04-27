@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import Boolean, JSON, Enum, ForeignKey, String, select, update
+from sqlalchemy import JSON, Boolean, Enum, ForeignKey, String, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -279,4 +279,12 @@ class Case(BaseModel):
             .order_by(cls.created_at.desc())
             .limit(n)
         )
+        return list(result.scalars().all())
+
+    async def filter_by(cls, db: AsyncSession, **filters) -> List["Case"]:
+        query = select(cls)
+        for field, value in filters.items():
+            if hasattr(cls, field):
+                query = query.where(getattr(cls, field) == value)
+        result = await db.execute(query)
         return list(result.scalars().all())
