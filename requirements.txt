@@ -28,3 +28,4 @@ sarvamai>=0.1.28
 anthropic
 openai
 ruff
+docxtpl

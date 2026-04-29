@@ -5,7 +5,7 @@ class LocalModel:
     def __init__(self):
         self.client = AsyncClient(host="http://host.docker.internal:11434")
 
-    async def generate_response(self, user_prompt, history=None):
+    async def generate_response(self, user_prompt, history=None, system_prompt=None):
 
         messages = history or []
 

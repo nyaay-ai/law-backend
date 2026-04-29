@@ -4,6 +4,8 @@ from app.models.case import Case, CaseOrderStatus, CaseDataStatus, FileStatus
 from app.models.case_chat import CaseChat
 from app.models.user_profile import UserProfile
 from app.models.user_chat import UserChats
+from app.models.case_prompts import CasePrompts
+from app.models.drafts import Draft
 
 __all__ = [
     "Base",
@@ -16,4 +18,6 @@ __all__ = [
     "CaseChat",
     "UserProfile",
     "UserChats",
+    "CasePrompts",
+    "Draft",
 ]
