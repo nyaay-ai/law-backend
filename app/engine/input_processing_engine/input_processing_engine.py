@@ -4,6 +4,7 @@ from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.engine.constants import ALLOWED, FIELD_QUESTIONS
+from app.engine.draft_constants import ValidationResult, ValidationStatus
 from app.engine.input_processing_engine.util import (
     get_classification_prompt,
     get_process_missing_fields_prompt,
@@ -14,6 +15,7 @@ from app.engine.reference_retrieval import ReferenceRetrieval
 from app.llm.llm import Llm, reset_current_case_id, set_current_case_id
 from app.models.case import Case
 from app.schemas.legal_context import DraftContext
+from app.schemas.prompt_schema import Party, PromptGist, ValidatedPrompt
 
 llm = Llm(json_mode=True)
 
@@ -233,3 +235,76 @@ class InputProcessingEngine:
         logger.info("Response from LLM for missing fields:", response)
 
         return response
+
+
+# {
+#     "validation_result": ValidatedPrompt(
+#         gist=PromptGist(
+#             draft_type="writ_petition",
+#             court_name="IN THE HIGH COURT OF PATNA",
+#             jurisdiction="Patna",
+#             parties=[
+#                 Party(
+#                     name="Mohtashim (age 26)",
+#                     role="petitioner",
+#                     address="Patna",
+#                     age=None,
+#                     parentage="",
+#                     occupation="",
+#                     designation=None,
+#                 ),
+#                 Party(
+#                     name="Shivansh (brother)",
+#                     role="respondent",
+#                     address="",
+#                     age=None,
+#                     parentage="",
+#                     occupation="",
+#                     designation=None,
+#                 ),
+#             ],
+#             facts_numbered=[
+#                 "1. That During eviction, Shivansh assaulted Mohtashim",
+#                 "2. That Mohtashim's belongings remain inside the house",
+#                 "3. That Mohtashim has resided in the house since childhood",
+#                 "4. That Mohtashim suffered physical and mental distress",
+#                 "5. That On 22 March 2026, Shivansh forcibly evicted Mohtashim without valid reason",
+#                 "6. That Mohtashim is currently denied entry to the house",
+#                 "7. That Shivansh threatened Mohtashim",
+#                 "8. That This involves property rights and family dispute",
+#             ],
+#             cause_of_action="The cause of action arose on 22 March 2026 (date of eviction and assault) at Patna when Unlawful eviction from ancestral/family property, assault, threats, and denial of residence rights.",
+#             relief_sought=[
+#                 "Restoration of possession and right to reside in the house, protection order against further assault/threats, legal notice to prevent future violations"
+#             ],
+#             legal_sections=["Article 226 Constitution of India"],
+#             precedents=[
+#                 "Justice K.S.Puttaswamy(Retd) vs Union Of India on 26 September, 2018 (Supreme Court of India)",
+#                 "2875. In Karbalai Begum vs . Mohd. Sayeed (1980) 4 on 28 November, 1858 (Allahabad High Court)",
+#                 "Justice K.S.Puttaswamy(Retd) vs Union Of India on 26 September, 2018 (Supreme Court of India)",
+#             ],
+#             tonality="formal_hindi",
+#             template_key="writ_petition",
+#             raw_refs=[
+#                 ". Puttaswamy (Retd.) and Mr. Pravesh Khanna, by filing Writ Petition (Civil) No. 494 of 2012. At that time, Aadhaar scheme was not under legislative umbrella. In the writ petition the scheme has primarily been challenged on the ground that it violates fundamental rights of the innumerable citizens of India, namely, right to privacy falling under Article 21 of the Constitution of India. Few others joined the race by filing connected petitions. Series of orders were passed in this petition from time to time, some of which would be referred to by us at the appropriate stage",
+#                 '. Inaction for a period of 12 years is treated by the Doctrine of Adverse Possession as evidence of the loss of desire on the part of the rightful owner to assert his ownership and reclaim possession." 2884. However, the Court further observed that if property, by virtue of some statutory provisions or otherwise, is alienable, the plea of adverse possession may not be available and held. : "23',
+#                 ". They are demanding scrapping and demolition of the entire Aadhaar structure which, according to them, is anathema to the democratic principles and rule of law, which is the bedrock of the Indian Constitution. The petitioners have challenged the Aadhaar project which took off by way of administrative action in the year 2009",
+#                 ". Zainulabudeen v. Sayed Ahmed Mohideen. 28. 'Ouster' does not mean actual driving out of the co- sharer from the property. It will, however, not be complete unless it is coupled with all other ingredients required to constitute adverse possession. Broadly speaking, three elements are necessary for establishing the plea of ouster in the case of co-owner. They are (i) declaration of hostile animus, (ii) long and uninterrupted possession of the person pleading ouster, and (iii) exercise of right of exclusive ownership openly and to the knowledge of other co-owner",
+#                 ". Under Article 65 of the Limitation Act, 1963, a suit for possession of immovable property or any interest therein based on title can be instituted within a period of 12 years calculated from the date when the possession of the defendant becomes adverse to the plaintiff. By virtue of Section 27 of the Limitation Act, at the determination of the period limited by the Act to any person for instituting a suit for possession of any property, his right to such property stands extinguished",
+#             ],
+#             writ_type="mandamus",
+#             dates=["22 March 2026 (date of eviction and assault)"],
+#             urgency="high",
+#             summary="Mohtashim seeks a writ petition in Patna High Court against his brother Shivansh for unlawful eviction, assault, and threats on 22 March 2026. He seeks restoration of house possession, protection, and a legal notice.",
+#         ),
+#         validation=ValidationResult(
+#             score=0.91,
+#             status=ValidationStatus.VALID,
+#             missing_fields=[],
+#             whatsapp_question=None,
+#             iteration=0,
+#         ),
+#         final=True,
+#     ),
+#     "message": "Validation result generated",
+# }

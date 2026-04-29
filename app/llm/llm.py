@@ -1,6 +1,10 @@
 from __future__ import annotations
 import contextvars
+import json
+import re
 from typing import Optional
+
+from loguru import logger
 
 from app.core.config import settings
 from app.llm import Gemini, LocalModel
@@ -31,6 +35,7 @@ def reset_llm_context(tokens: tuple) -> None:
 
 
 def set_current_case_id(case_id: Optional[str]) -> contextvars.Token:
+    print(_current_case_id.get(case_id))
     return _current_case_id.set(case_id)
 
 
@@ -68,6 +73,20 @@ def _tokens_from_claude(raw) -> tuple[int, int]:
     return 0, 0
 
 
+def _extract_json(text: str) -> str:
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        return match.group(0)
+    return text
+
+
+def _safe_parse_json(text: str):
+    try:
+        return json.loads(text)
+    except Exception:
+        return None
+
+
 class Llm:
     def __init__(self, model_name=None, json_mode=False):
         self.model = model_name or settings.MODEL_NAME
@@ -81,6 +100,7 @@ class Llm:
         history=None,
         case_id: str | None = None,
         user_id: str | None = None,
+        system_prompt: str | None = None,
     ) -> str:
         model = model_name or self.model or settings.MODEL_NAME
         effective_case_id = case_id or _current_case_id.get()
@@ -93,7 +113,7 @@ class Llm:
 
         if model == "GEMINI":
             response = await self.gemini_service.generate_response(
-                user_prompt=user_prompt, history=history
+                user_prompt=user_prompt, history=history, system_prompt=system_prompt
             )
             input_tokens = len(user_prompt.split())
             output_tokens = len(str(response).split())
@@ -101,19 +121,21 @@ class Llm:
         elif model == "LOCAL":
             local_model_service = LocalModel()
             response = await local_model_service.generate_response(
-                user_prompt=user_prompt, history=history
+                user_prompt=user_prompt, history=history, system_prompt=system_prompt
             )
             input_tokens = len(user_prompt.split())
             output_tokens = len(str(response).split())
 
         elif model == "SARVAM":
             sarvam_service = SarvamModel()
-            response = await sarvam_service.generate_response(user_prompt=user_prompt)
+            response = await sarvam_service.generate_response(
+                user_prompt=user_prompt, system_prompt=system_prompt
+            )
             input_tokens = len(user_prompt.split())
             output_tokens = len(str(response).split())
 
         elif model == "OPENAI":
-            openai_service = OpenAIModel()
+            openai_service = OpenAIModel(system_prompt=system_prompt)
             raw = await openai_service.generate_response(
                 user_prompt=user_prompt, history=history
             )
@@ -126,20 +148,50 @@ class Llm:
                 output_tokens = len(str(response).split())
 
         elif model == "CLAUDE":
-
             claude_service = Claude()
-
             if self.json_mode:
-                raw = await claude_service.generate_json_response(
-                    user_prompt=user_prompt
+                text = await claude_service.stream_response(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
                 )
-                response = "{" + raw.content[0].text
+                try:
+                    cleaned = _extract_json(text)
+                except Exception:
+                    cleaned = text
+
+                try:
+                    parsed = _safe_parse_json(cleaned)
+                except Exception:
+                    parsed = cleaned
+
+                if parsed is None:
+                    logger.warning("Claude returned invalid JSON. Retrying (stream)...")
+
+                    retry_prompt = (
+                        (system_prompt or "")
+                        + "\n\nSTRICT: Return ONLY valid JSON. No markdown. No explanation."
+                    )
+
+                    text_retry = await claude_service.stream_response(
+                        user_prompt=user_prompt,
+                        system_prompt=retry_prompt,
+                    )
+                    try:
+                        cleaned = _extract_json(text_retry)
+                    except Exception:
+                        cleaned = text_retry
+
+                response = cleaned
+                input_tokens = len(user_prompt.split())
+                output_tokens = len(response.split())
             else:
-                raw = await claude_service.generate_response(user_prompt=user_prompt)
-                response = raw.content[0].text
-
-
-            input_tokens, output_tokens = _tokens_from_claude(raw)
+                raw = await claude_service.generate_response(
+                    user_prompt=user_prompt,
+                    system_prompt=system_prompt,
+                )
+                input_tokens, output_tokens = _tokens_from_claude(raw)
+                text = raw.content[0].text
+                response = text
 
         await log_tokens(
             case_id=effective_case_id,

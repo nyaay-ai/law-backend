@@ -23,3 +23,4 @@ env/
 
 alembic/versions/*.py
 !alembic/versions/.gitkeep
+.DS_Store

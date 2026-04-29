@@ -4,6 +4,8 @@ import os
 from datetime import datetime, timezone
 from app.database.redis_session import redis_cursor
 from loguru import logger
+from app.database.session import db
+from app.models.user_chat import UserChats
 
 SESSION_TTL = 60 * 60 * 24  # 24 hours
 
@@ -34,8 +36,6 @@ async def append_chat_message(user_id: str, text: str, sent_by: str) -> None:
     sent_by : str
         ``SENT_BY_USER`` or ``SENT_BY_SYSTEM``.
     """
-    from app.database.session import db
-    from app.models.user_chat import UserChats
 
     message = _build_message(text, sent_by)
 

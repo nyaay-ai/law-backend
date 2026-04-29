@@ -7,7 +7,7 @@ class Gemini:
     def __init__(self):
         self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
-    async def generate_response(self, user_prompt, history=None):
+    async def generate_response(self, user_prompt, history=None, system_prompt=None):
 
         messages = history or []
 

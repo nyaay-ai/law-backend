@@ -189,28 +189,22 @@ async def check_if_message_is_case_relevant(case_id: str, user_text: str) -> boo
     try:
         llm = Llm()
         raw = await llm.generate_response(user_prompt=prompt)
-        print(f"response_from_model>>{raw}")
+
         cleaned = (raw or "").strip().upper()
 
-        if not cleaned:
-            if "YES" in (raw or "").upper():
-                cleaned = "YES"
-            elif "NO" in (raw or "").upper():
-                cleaned = "NO"
-            else:
-                logger.warning(
-                    "check_case_relevant empty after strip, defaulting YES case={}",
-                    case_id,
-                )
-                cleaned = "YES"
+        logger.info("Raw relevance response: {}", cleaned)
 
-        logger.info(
-            "check_case_relevant case={} text={} result={}",
+        if cleaned.startswith("YES"):
+            return True
+        elif cleaned.startswith("NO"):
+            return False
+
+        logger.warning(
+            "Unexpected relevance response case={}: {}",
             case_id,
-            user_text[:60],
             cleaned,
         )
-        return cleaned == "YES"
+        return True
 
     except Exception as exc:
         logger.error("check_case_relevant failed case={}: {}", case_id, exc)
